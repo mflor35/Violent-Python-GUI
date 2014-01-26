@@ -9,7 +9,7 @@ class PortPanel(scrolled.ScrolledPanel):
     #---------------------------------------------------------------------------
     def __init__(self, parent):
         scrolled.ScrolledPanel.__init__(self, parent)
-        self.SetBackgroundColour("RED")
+        self.SetBackgroundColour("WHITE")
         self.__createSizer()
         
         self.SetSizer(self.main_sizer)
@@ -24,10 +24,17 @@ class PortPanel(scrolled.ScrolledPanel):
     #---------------------------------------------------------------------------
     def addPortInfo(self, port):
         """ Display info and add to sizer """
-        print 'sup', port, type(port)
         port_text = wx.StaticText(self, -1, port)
-        #self.main_sizer.Add(port_text, 0, wx.ALL|wx.ALIGN_CENTER, 5)
-        wx.CallAfter(self.main_sizer.Add, port_text, 0, wx.ALL|wx.ALIGN_CENTER, 5)
+        self.main_sizer.Add(port_text, 0, wx.ALL|wx.ALIGN_CENTER, 5)
+        self.Layout()
+        self.SetupScrolling()
+        
+    #---------------------------------------------------------------------------
+    def _remove(self):
+        """ Removes all the text within the scroll panel """
+        self.main_sizer.DeleteWindows()
+        self.Layout()
+        self.SetupScrolling()
 
 class PSPanel(wx.Panel):
     
@@ -54,6 +61,7 @@ class PSPanel(wx.Panel):
         # Create Static Texts
         target_text = wx.StaticText(self, -1, "Enter IP/HostName:")
         port_text = wx.StaticText(self, -1, "Enter Ports to scan:")
+        self.info_text = wx.StaticText(self, -1, "", style=wx.ALIGN_CENTER)
         
         # Create Text Ctrls
         self.target_input = wx.TextCtrl(self)
@@ -82,6 +90,7 @@ class PSPanel(wx.Panel):
         
         # Add tmp sizers to main sizer
         self.main_sizer.Add(tmp_sizer3, 0, wx.EXPAND)
+        self.main_sizer.Add(self.info_text, 0, wx.ALL|wx.EXPAND, 5)
 
     #---------------------------------------------------------------------------
     def __createButtons(self):
@@ -102,6 +111,9 @@ class PSPanel(wx.Panel):
     #---------------------------------------------------------------------------
     def onScan(self, e):
         """ Called when scan_btn in pressed """
+        # Remove text from scroll panel
+        self.scroll_panel._remove()
+        
         # Check if all fields are filled out
         if self.target_input.GetValue() == "":
             wx.MessageBox("Please Enter IP Address or Hostname",
@@ -126,9 +138,9 @@ class PSPanel(wx.Panel):
         # Try to get address
         try:
             tgtName = gethostbyaddr(tgtIP)
-            print "[+] Scan results for: " + tgtName[0]
+            self.info_text.SetLabel("[+] Scan results for: " + tgtName[0])
         except:
-            print "[+] Scan results for: " + tgtIP
+            self.info_text.SetLabel("[+] Scan results for: " + tgtIP)
         setdefaulttimeout(1)
         for tgtPort in tgtPorts:
             t = Thread(target=self.connScan, args=(tgtHost, int(tgtPort)))
@@ -140,7 +152,7 @@ class PSPanel(wx.Panel):
             connSkt = socket(AF_INET, SOCK_STREAM)
             connSkt.connect((tgtHost, tgtPort))
             connSkt.send('Some text here\r\n')
-            results = connSkt.recv(100)
+            results = connSkt.recv(1024 * 10)
             screenLock.acquire()
             port_info = "[+] %d /tcp Open" % tgtPort
             port_info += "\n[+] " + results
@@ -148,7 +160,7 @@ class PSPanel(wx.Panel):
             screenLock.acquire()
             port_info = "[-] %d /tcp closed" % tgtPort
         finally:
-            self.scroll_panel.addPortInfo(port_info)
+            wx.CallAfter(self.scroll_panel.addPortInfo, port_info)
             screenLock.release()
             connSkt.close()
 
@@ -157,7 +169,7 @@ class PortScanner(wx.Frame):
     #---------------------------------------------------------------------------
     def __init__(self, parent=None):
         """ Constructor """
-        wx.Frame.__init__(self, parent, -1, "Port Scanner", size=(400,450))
+        wx.Frame.__init__(self, parent, -1, "Port Scanner", size=(500,500))
         self.Center()
         
         self.__createSizer()
