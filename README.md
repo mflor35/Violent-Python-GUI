@@ -9,8 +9,10 @@ Versions used:
  - WxPython 3.0
  
 OS Tested:
- - Windows 8.1 only
+ - Windows 8.1 
+ - Ubuntu 13.10
  
  Needed to run:
  - Python
  - WxPython 3.0 (Have not testing with other versions)
+   - Works with 2.8.12.1 
